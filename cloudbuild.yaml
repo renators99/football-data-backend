@@ -1,0 +1,26 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/football-data-backend', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/football-data-backend']
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        DB_USER=$(gcloud secrets versions access latest --secret=DB_USER)
+        DB_PASSWORD=$(gcloud secrets versions access latest --secret=DB_PASSWORD)
+        DB_HOST=$(gcloud secrets versions access latest --secret=DB_HOST)
+        DB_NAME=$(gcloud secrets versions access latest --secret=DB_NAME)
+
+        gcloud run deploy football-data-backend \
+          --image gcr.io/$PROJECT_ID/football-data-backend \
+          --platform managed \
+          --region us-central1 \
+          --set-env-vars DB_USER=$DB_USER,DB_PASSWORD=$DB_PASSWORD,DB_HOST=$DB_HOST,DB_NAME=$DB_NAME \
+          --allow-unauthenticated
+
+images:
+  - 'gcr.io/$PROJECT_ID/football-data-backend'
