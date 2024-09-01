@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date
-from app.utils.database import Base
+from app.db.base import Base
 
 class MatchResult(Base):
     __tablename__ = "match_results"

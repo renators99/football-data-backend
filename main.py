@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.api.endpoints import router as match_router
-from app.utils.database import init_db
+from app.db.database import init_db
 
 init_db()
 

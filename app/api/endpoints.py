@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.utils.database import  SessionLocal
+from app.db.database import SessionLocal
 from app.schemas.match import Match
 from app.models.match import MatchResult
 from app.utils.scraper import scrape_football_data
