@@ -37,15 +37,15 @@ steps:
 
 availableSecrets:
   secretManager:
-    - versionName: projects/upbeat-voice-433617/secrets/DB_USER/versions/latest
+    - versionName: projects/upbeat-voice-433617-n9/secrets/DB_USER/versions/latest
       env: 'DB_USER'
-    - versionName: projects/upbeat-voice-433617/secrets/DB_PASSWORD/versions/latest
+    - versionName: projects/upbeat-voice-433617-n9/secrets/DB_PASSWORD/versions/latest
       env: 'DB_PASSWORD'
-    - versionName: projects/upbeat-voice-433617/secrets/DB_HOST/versions/latest
+    - versionName: projects/upbeat-voice-433617-n9/secrets/DB_HOST/versions/latest
       env: 'DB_HOST'
-    - versionName: projects/upbeat-voice-433617/secrets/DB_NAME/versions/latest
+    - versionName: projects/upbeat-voice-433617-n9/secrets/DB_NAME/versions/latest
       env: 'DB_NAME'
-    - versionName: projects/upbeat-voice-433617/secrets/DB_PORT/versions/latest
+    - versionName: projects/upbeat-voice-433617-n9/secrets/DB_PORT/versions/latest
       env: 'DB_PORT'
 
 options:
