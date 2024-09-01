@@ -1,42 +1,37 @@
-import os
-
 from google.cloud.sql.connector import Connector, IPTypes
-import pg8000
-
 import sqlalchemy
-from dotenv import load_dotenv
-from .settings import DB_USER, DB_PASSWORD, DB_INSTANCE_CONNECTION_NAME, DB_NAME, DB_PORT
+from app.utils.secrets import get_secret
 
 def connect_with_connector() -> sqlalchemy.engine.base.Engine:
     """
     Initializes a connection pool for a Cloud SQL instance of PostgreSQL.
-
-    Uses the Cloud SQL Python Connector package.
     """
-    load_dotenv()
+    # Recuperar los secretos desde GCP
+    db_user = get_secret("DB_USER")
+    db_password = get_secret("DB_PASSWORD")
+    db_name = get_secret("DB_NAME")
+    db_port = get_secret("DB_PORT")  # Asegúrate de que este valor sea un entero
+    db_instance_connection_name = get_secret("DB_INSTANCE_CONNECTION_NAME")
 
-    ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
+    connector = Connector()
 
-    connector = Connector(ip_type)
-
-    def getconn() -> pg8000.Connection:
-        conn: pg8000.Connection = connector.connect(
-            DB_INSTANCE_CONNECTION_NAME,
+    def getconn() -> sqlalchemy.engine.base.Connection:
+        conn: sqlalchemy.engine.base.Connection = connector.connect(
+            db_instance_connection_name,
             "pg8000",
-            user=DB_USER,
-            password=DB_PASSWORD
-            db=DB_NAME_TANTEA,
+            user=db_user,
+            password=db_password,
+            db=db_name,
         )
         return conn
 
+    # Crear el pool de conexiones usando SQLAlchemy
     pool = sqlalchemy.create_engine(
-        "postgresql+pg8000://",
+        f"postgresql+pg8000://",
         creator=getconn,
-        pool_size=60,
-        max_overflow=10,
-        pool_timeout=90,  # 30 seconds
-        pool_recycle=1800,  # 30 minutes
+        pool_size=5,
+        max_overflow=2,
+        pool_timeout=30,
+        pool_recycle=1800,
     )
     return pool
-
-# [END cloud_sql_postgres_sqlalchemy_connect_connector]

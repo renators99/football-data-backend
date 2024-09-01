@@ -2,10 +2,11 @@ steps:
   # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/football-data-backend', '.']
-    
+    secretEnv: ['DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_NAME', 'DB_PORT']
+
   # Push the Docker image to Google Container Registry (GCR)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/football-data-backend'] 
+    args: ['push', 'gcr.io/$PROJECT_ID/football-data-backend']
 
   # Deploy to Cloud Run in the `us-central1` region
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -17,7 +18,7 @@ steps:
       - '--image'
       - 'gcr.io/$PROJECT_ID/football-data-backend'
       - '--region'
-      - 'us-central1'  # Cambiado a us-central1
+      - 'us-central1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
@@ -32,7 +33,20 @@ steps:
       - '--min-instances'
       - '1'
       - '--add-cloudsql-instances'
-      - 'upbeat-voice-433617-n9:us-central1:mi-cloudsql-instance'  # Reemplaza con tu instancia Cloud SQL
+      - 'upbeat-voice-433617-n9:us-central1:mi-cloudsql-instance'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/upbeat-voice-433617/secrets/DB_USER/versions/latest
+      env: 'DB_USER'
+    - versionName: projects/upbeat-voice-433617/secrets/DB_PASSWORD/versions/latest
+      env: 'DB_PASSWORD'
+    - versionName: projects/upbeat-voice-433617/secrets/DB_HOST/versions/latest
+      env: 'DB_HOST'
+    - versionName: projects/upbeat-voice-433617/secrets/DB_NAME/versions/latest
+      env: 'DB_NAME'
+    - versionName: projects/upbeat-voice-433617/secrets/DB_PORT/versions/latest
+      env: 'DB_PORT'
 
 options:
   machineType: 'E2_HIGHCPU_8'
