@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score
 import joblib
 
 from ..utils.config import load_config_from_env
+from ..utils.layers import silver_root
 
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -25,14 +26,14 @@ except ImportError:
     LOGGER.warning("Google Cloud libraries not available. Running in local mode only.")
 
 def _load_data_local(config):
-    """Load data from local CSV."""
-    data_path = Path(config["output_dir"]).parent / "silver" / "matches.csv"
+    """Load data from the local silver parquet dataset."""
+    data_path = silver_root(Path(config["output_dir"]).parent) / "matches"
     if not data_path.exists():
         raise FileNotFoundError(f"El archivo de datos no existe: {data_path}. Ejecuta el pipeline hasta la capa silver para generarlo.")
     
-    df = pd.read_csv(data_path)
-    if 'season' in df.columns:
-        df = df[df['season'] >= '2020']
+    df = pd.read_parquet(data_path)
+    if 'season_start_year' in df.columns:
+        df = df[df['season_start_year'] >= 2020]
     if 'result' not in df.columns and 'full_time_result' in df.columns:
         df['result'] = df['full_time_result'].map({'H': 1, 'A': 2, 'D': 0})
     return df.dropna()
@@ -50,7 +51,7 @@ def _load_data_bigquery(config):
         half_time_home_goals, half_time_away_goals, home_shots, away_shots,
         CASE WHEN full_time_result = 'H' THEN 1 WHEN full_time_result = 'A' THEN 2 ELSE 0 END as result
     FROM `{config['gcp_project']}.{dataset}.silver_matches`
-    WHERE season >= '2020'
+    WHERE season_start_year >= 2020
     """
     return bq_client.query(query).to_dataframe().dropna()
 
