@@ -85,7 +85,18 @@ def _load_data_local(config: Mapping[str, object]) -> pd.DataFrame:
             f"No existe la tabla silver en {data_path}. Ejecuta el pipeline hasta silver."
         )
 
-    df = pd.read_parquet(data_path)
+    parquet_files = [
+        path
+        for path in data_path.rglob("*.parquet")
+        if not any(part.startswith("_") for part in path.relative_to(data_path).parts)
+    ]
+    if not parquet_files:
+        raise FileNotFoundError(
+            f"No hay archivos Parquet finales en {data_path}. "
+            "La capa silver parece incompleta; vuelve a ejecutar silver o el pipeline completo."
+        )
+
+    df = pd.read_parquet(parquet_files)
     return _normalize_matches(df)
 
 
@@ -112,13 +123,19 @@ def _load_data_bigquery(config: Mapping[str, object]) -> pd.DataFrame:
 def _normalize_matches(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["match_date"] = pd.to_datetime(df["match_date"], errors="coerce")
-    if "season_start_year" in df.columns:
-        df = df[df["season_start_year"] >= 2020]
+    df["season_start_year"] = _season_start_year(df["season"])
+    df = df[df["season_start_year"] >= 2020]
     if "full_time_result" not in df.columns and "result" in df.columns:
         reverse = {value: key for key, value in RESULT_TO_LABEL.items()}
         df["full_time_result"] = df["result"].map(reverse)
     df["result"] = df["full_time_result"].map(RESULT_TO_LABEL)
     return df
+
+
+def _season_start_year(season: pd.Series) -> pd.Series:
+    season_prefix = season.astype(str).str.zfill(4).str[:2]
+    start_year = pd.to_numeric(season_prefix, errors="coerce")
+    return start_year.where(start_year >= 80, start_year + 100) + 1900
 
 
 def _load_matches(config: Mapping[str, object], *, is_gcp: bool) -> pd.DataFrame:
@@ -198,8 +215,13 @@ def _add_running_team_stats(team_rows: pd.DataFrame) -> pd.DataFrame:
         "shots_on_target_against",
     ]
     group_keys = ["league_code", "season", "team"]
-    grouped = team_rows.groupby(group_keys, sort=False)
-    previous = grouped[value_columns].cumsum().groupby([team_rows[key] for key in group_keys]).shift()
+    grouped = team_rows.groupby(group_keys, sort=False, observed=False)
+    previous = (
+        grouped[value_columns]
+        .cumsum()
+        .groupby([team_rows[key] for key in group_keys], observed=False)
+        .shift()
+    )
     stats = team_rows[["match_id", "venue"]].copy()
     stats["matches_played"] = grouped.cumcount()
 
@@ -363,7 +385,7 @@ def _pending_matches(
         return pending
 
     windows = []
-    for _, group in pending.groupby(["league_code", "season"], dropna=False):
+    for _, group in pending.groupby(["league_code", "season"], dropna=False, observed=False):
         start = group["match_date"].min()
         end = start + pd.Timedelta(days=round_days)
         windows.append(group[(group["match_date"] >= start) & (group["match_date"] < end)])
