@@ -172,6 +172,37 @@ Luego revisa que existan archivos en:
 - `data/raw/gold/team_season_table`
 - `data/raw/gold/league_season_summary`
 
+## Predicción de la siguiente jornada
+
+El módulo de ML entrena con métricas previas al partido: forma del local,
+forma del visitante, goles, tiros y diferencias entre ambos equipos. Esto
+permite predecir partidos pendientes sin usar datos que solo existen después
+del encuentro.
+
+Entrena o actualiza el modelo:
+
+```bash
+python -m football_data.ml.run_ml train
+```
+
+Genera las predicciones de la siguiente jornada pendiente:
+
+```bash
+python -m football_data.ml.run_ml predict-next-round
+```
+
+También puedes filtrar una liga/temporada y controlar la ventana de la jornada:
+
+```bash
+python -m football_data.ml.run_ml predict-next-round --league-code SP1 --season 2526 --round-days 7
+```
+
+La salida se imprime en consola y se guarda en:
+
+```text
+models/next_round_predictions.csv
+```
+
 ## Carga automática a GCS
 
 Si defines `FOOTBALL_DATA_GCS_BUCKET`, cada descarga exitosa se sube a Cloud
