@@ -18,6 +18,15 @@ def _optional_integer_column(frame: DataFrame, column_name: str):
     return F.lit(None).cast("int")
 
 
+def _parse_match_date():
+    date_text = F.trim(F.col("Date"))
+    return F.coalesce(
+        F.when(date_text.rlike(r"^\d{1,2}/\d{1,2}/\d{4}$"), F.to_date(date_text, "d/M/yyyy")),
+        F.when(date_text.rlike(r"^\d{1,2}/\d{1,2}/\d{2}$"), F.to_date(date_text, "d/M/yy")),
+        F.when(date_text.rlike(r"^\d{4}-\d{1,2}-\d{1,2}$"), F.to_date(date_text, "yyyy-M-d")),
+    )
+
+
 def build_silver_matches(
     bronze_matches: DataFrame,
 ) -> DataFrame:
@@ -37,14 +46,7 @@ def build_silver_matches(
     away_red_cards = _optional_integer_column(bronze_matches, "AR")
 
     return (
-        bronze_matches.withColumn(
-            "match_date",
-            F.coalesce(
-                F.to_date(F.col("Date"), "dd/MM/yy"),
-                F.to_date(F.col("Date"), "dd/MM/yyyy"),
-                F.to_date(F.col("Date"), "yyyy-MM-dd"),
-            ),
-        )
+        bronze_matches.withColumn("match_date", _parse_match_date())
         .withColumn("home_team", F.col("HomeTeam"))
         .withColumn("away_team", F.col("AwayTeam"))
         .withColumn("full_time_home_goals", F.coalesce(F.col("FTHG").cast("int"), F.lit(0)))
